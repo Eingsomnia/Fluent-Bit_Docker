@@ -29,21 +29,28 @@ jobs:
           # คัดลอกไฟล์ CSV ทุกไฟล์จาก test/ ไป csv_test/
           if [ -d "test" ] && ls test/*.csv >/dev/null 2>&1; then
             cp test/*.csv csv_test/
+            echo "Copied CSV files: $(ls csv_test/*.csv)"
           else
             echo "No CSV files found in test/. Creating a default test file."
             echo "No.,MACHINE_NO,Lot,Product,X,Y,Result" > csv_test/default.csv
             echo "1,CRST_109,A1816812508300130162,ALDER_EX1_MPT_8168_UP,21.25,-21.031,Passed" >> csv_test/default.csv
           fi
 
-          # รัน container และเก็บ output
+          # รัน container และเก็บ output รวมถึง error
           docker run --rm -v $(pwd)/csv_test:/csv_parser fluent-bit-test:latest > output.log 2>&1
 
-          # แสดง output เพื่อ debug
+          # แสดง output และ error เพื่อ debug
+          echo "Container output:"
           cat output.log
+
+          # ตรวจสอบว่า container รันสำเร็จหรือไม่
+          if [ $? -ne 0 ]; then
+            echo "Container failed to run. Check output.log for details."
+            exit 1
+          fi
 
       - name: Verify Output
         run: |
-          # ตรวจสอบว่า output มี JSON ที่คาดหวังจากไฟล์ CSV หรือไม่
           if grep -q '"MACHINE_NO":"CRST_109"' output.log && grep -q '"Result":"Passed"' output.log; then
             echo "Test passed: Found expected JSON output"
           else
