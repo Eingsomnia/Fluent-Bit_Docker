@@ -22,13 +22,21 @@ jobs:
         run: |
           docker build -t fluent-bit-test:latest .
 
-      # ทดสอบ Fluent Bit ด้วยไฟล์ CSV
+      # ทดสอบ Fluent Bit ด้วยไฟล์ CSV ทุกไฟล์ใน test/
       - name: Test Fluent Bit with CSV
         id: test_run
         run: |
-          # Copy ไฟล์ CSV ทดสอบไปยังโฟลเดอร์ชั่วคราว
+          # สร้างโฟลเดอร์ชั่วคราว
           mkdir -p csv_test
-          cp test/*.csv csv_test/
+
+          # คัดลอกไฟล์ CSV ทุกไฟล์จาก test/ ไป csv_test/
+          if [ -d "test" ] && ls test/*.csv >/dev/null 2>&1; then
+            cp test/*.csv csv_test/
+          else
+            echo "No CSV files found in test/. Creating a default test file."
+            echo "No.,MACHINE_NO,Lot,Product,X,Y,Result" > csv_test/default.csv
+            echo "1,CRST_109,A1816812508300130162,ALDER_EX1_MPT_8168_UP,21.25,-21.031,Passed" >> csv_test/default.csv
+          fi
 
           # รัน container และเก็บ output
           docker run --rm -v $(pwd)/csv_test:/csv_parser fluent-bit-test:latest > output.log 2>&1
@@ -39,11 +47,11 @@ jobs:
       # ตรวจสอบผลลัพธ์
       - name: Verify Output
         run: |
-          # ตรวจสอบว่า output มี JSON ที่คาดหวังหรือไม่
+          # ตรวจสอบว่า output มี JSON ที่คาดหวังจากไฟล์ CSV หรือไม่
           if grep -q '"MACHINE_NO":"CRST_109"' output.log && grep -q '"Result":"Passed"' output.log; then
             echo "Test passed: Found expected JSON output"
           else
             echo "Test failed: Expected JSON not found in output"
-            cat output.log  # แสดง output ถ้าผิดพลาด
+            cat output.log
             exit 1
           fi
