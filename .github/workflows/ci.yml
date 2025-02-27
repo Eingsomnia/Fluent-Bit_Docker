@@ -1,0 +1,49 @@
+name: Fluent Bit CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-fluent-bit:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout โค้ดจาก repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t fluent-bit-test:latest .
+
+      # ทดสอบ Fluent Bit ด้วยไฟล์ CSV
+      - name: Test Fluent Bit with CSV
+        id: test_run
+        run: |
+          # Copy ไฟล์ CSV ทดสอบไปยังโฟลเดอร์ชั่วคราว
+          mkdir -p csv_test
+          cp test/test.csv csv_test/
+
+          # รัน container และเก็บ output
+          docker run --rm -v $(pwd)/csv_test:/csv_parser fluent-bit-test:latest > output.log 2>&1
+
+          # แสดง output เพื่อ debug
+          cat output.log
+
+      # ตรวจสอบผลลัพธ์
+      - name: Verify Output
+        run: |
+          # ตรวจสอบว่า output มี JSON ที่คาดหวังหรือไม่
+          if grep -q '"MACHINE_NO":"CRST_109"' output.log && grep -q '"Result":"Passed"' output.log; then
+            echo "Test passed: Found expected JSON output"
+          else
+            echo "Test failed: Expected JSON not found in output"
+            cat output.log  # แสดง output ถ้าผิดพลาด
+            exit 1
+          fi
