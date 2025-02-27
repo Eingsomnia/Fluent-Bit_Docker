@@ -13,16 +13,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout โค้ดจาก repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Build Docker image
       - name: Build Docker image
         run: |
           docker build -t fluent-bit-test:latest .
 
-      # ทดสอบ Fluent Bit ด้วยไฟล์ CSV ทุกไฟล์ใน test/
       - name: Test Fluent Bit with CSV
         id: test_run
         run: |
@@ -44,7 +41,6 @@ jobs:
           # แสดง output เพื่อ debug
           cat output.log
 
-      # ตรวจสอบผลลัพธ์
       - name: Verify Output
         run: |
           # ตรวจสอบว่า output มี JSON ที่คาดหวังจากไฟล์ CSV หรือไม่
