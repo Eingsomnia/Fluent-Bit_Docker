@@ -28,7 +28,7 @@ jobs:
         run: |
           # Copy ไฟล์ CSV ทดสอบไปยังโฟลเดอร์ชั่วคราว
           mkdir -p csv_test
-          cp test/test.csv csv_test/
+          cp test/*.csv csv_test/
 
           # รัน container และเก็บ output
           docker run --rm -v $(pwd)/csv_test:/csv_parser fluent-bit-test:latest > output.log 2>&1
